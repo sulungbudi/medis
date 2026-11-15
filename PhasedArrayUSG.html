@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phased Array Ultrasonik</title>
+<style>
+:root{
+  --bg:#F5F7FA; --card:#FFFFFF; --ink:#1B263B; --mut:#5C677D; --line:#D9DEE6;
+  --cr:#A4133C; --gr:#00896A; --am:#B87500; --soft:#EEF1F6; --screen:#0B1220;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1623; --card:#172033; --ink:#E8ECF3; --mut:#9AA7BD; --line:#2A3650;
+    --cr:#FF6B8E; --gr:#2FD9A6; --am:#F4B63D; --soft:#1E2A42; --screen:#070B14;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1623; --card:#172033; --ink:#E8ECF3; --mut:#9AA7BD; --line:#2A3650;
+  --cr:#FF6B8E; --gr:#2FD9A6; --am:#F4B63D; --soft:#1E2A42; --screen:#070B14;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,Carlito,"Segoe UI",system-ui,sans-serif;font-size:18px;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px 56px}
+header{padding:36px 0 18px}
+.kick{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cr)}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.12;margin:6px 0 10px}
+.lead{font-size:20px;color:var(--mut);max-width:60ch;margin:0}
+.bar{width:64px;height:4px;background:var(--cr);margin:18px 0 0;border-radius:2px}
+h2{font-size:26px;margin:0 0 10px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-top:20px}
+p{margin:0 0 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.step{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg)}
+.step b{display:block;font-size:19px;margin-bottom:4px}
+.step .n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:700;font-size:15px;margin-right:8px}
+.c1 .n{background:#A4133C}.c2 .n{background:#B87500}.c3 .n{background:#00896A}
+.sim{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:18px;align-items:start}
+.screen{position:relative;background:var(--screen);border-radius:12px;overflow:hidden}
+canvas{display:block;width:100%}
+#field{aspect-ratio:4/3;height:auto}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+button,.btn{font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--mut)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+.ctl{margin:0 0 12px}
+.ctl label{display:flex;justify-content:space-between;font-size:16px;font-weight:600;margin-bottom:2px}
+.ctl output{color:var(--cr);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--cr)}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.chk{display:flex;align-items:center;gap:8px;font-size:16px;margin:4px 0 10px}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.read div{background:var(--soft);border-radius:10px;padding:8px 10px;font-size:15px;line-height:1.3}
+.read span{display:block;color:var(--mut);font-size:13px}
+.read b{font-size:18px;font-variant-numeric:tabular-nums}
+.warn{color:var(--cr)}
+.ok{color:var(--gr)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.cap{font-size:15px;color:var(--mut);margin:8px 0 0}
+.chartbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.chartbox h3{font-size:17px;margin:0 0 6px}
+.eq{background:var(--soft);border-left:4px solid var(--cr);border-radius:6px;padding:10px 14px;margin:10px 0;font-size:20px;overflow-x:auto}
+.eq small{display:block;color:var(--mut);font-size:15px}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+th{background:var(--ink);color:var(--card)}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0;background:var(--bg)}
+summary{cursor:pointer;font-weight:600}
+details p{margin:8px 0 0}
+.note{font-size:15px;color:var(--mut)}
+footer{margin-top:26px;color:var(--mut);font-size:15px}
+sub,sup{line-height:0}
+@media (max-width:860px){
+  .sim,.two,.grid3{grid-template-columns:1fr}
+  body{font-size:17px}
+  section{padding:16px}
+}
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kick">Instrumentasi Medis • Ultrasonografi</div>
+  <h1>Phased Array: Membelokkan dan Memfokuskan Berkas dengan Waktu</h1>
+  <p class="lead">Banyak elemen kecil, tanpa bagian bergerak. Hanya dengan mengatur <em>kapan</em> tiap elemen ditembakkan, berkas ultrasonik dapat diarahkan ke sudut mana pun dan difokuskan ke kedalaman tertentu.</p>
+  <div class="bar"></div>
+</header>
+
+<section aria-labelledby="idea">
+  <h2 id="idea">Idenya dalam tiga langkah</h2>
+  <div class="grid3">
+    <div class="step c1"><b><span class="n">1</span>Serentak → lurus</b>Semua elemen ditembak pada saat yang sama. Gelombang tiap elemen menjumlah di depan probe, sehingga berkas menuju lurus ke depan.</div>
+    <div class="step c2"><b><span class="n">2</span>Tunda berurutan → membelok</b>Elemen ditembak berurutan dengan selisih waktu tetap. Muka gelombang gabungan menjadi miring, dan berkas berbelok ke arah elemen yang terlambat.</div>
+    <div class="step c3"><b><span class="n">3</span>Tunda melengkung → fokus</b>Elemen tepi ditembak lebih dulu daripada elemen tengah, sehingga semua gelombang tiba bersamaan di satu titik pada kedalaman F.</div>
+  </div>
+  <p class="note" style="margin-top:12px">Webster (Bab 12.12, Gambar 12.32d): bila elemen sisi kiri ditunda berurutan, energi diproyeksikan ke kanan dengan sudut sebanding dengan tunda waktunya.</p>
+</section>
+
+<section aria-labelledby="simh">
+  <h2 id="simh">Simulator</h2>
+  <p>Geser slider dan lihat medan gelombang, pola berkas, dan profil tunda berubah. Tombol preset di bawah memberi titik awal.</p>
+  <div class="sim">
+    <div>
+      <div class="tabs" role="group" aria-label="Mode tampilan">
+        <button id="mWave" aria-pressed="true">Gelombang (animasi)</button>
+        <button id="mInt" aria-pressed="false">Intensitas (dB)</button>
+        <button id="play" aria-pressed="true">Jeda</button>
+      </div>
+      <div class="screen"><canvas id="field" aria-label="Medan gelombang dari array ultrasonik"></canvas></div>
+      <p class="cap" id="capField">Probe di atas; kedalaman ke bawah. Model 2D gelombang kontinu dari sumber titik, tanpa atenuasi.</p>
+    </div>
+    <div>
+      <div class="presets" role="group" aria-label="Preset">
+        <button data-p="lurus">Lurus 0°</button>
+        <button data-p="steer">Steering 30°</button>
+        <button data-p="fokus">Fokus 25 mm</button>
+        <button data-p="gl">Grating lobe</button>
+      </div>
+      <div class="ctl"><label for="sN">Jumlah elemen N <output id="oN"></output></label><input type="range" id="sN" min="4" max="64" step="1"></div>
+      <div class="ctl"><label for="sD">Pitch d (dalam λ) <output id="oD"></output></label><input type="range" id="sD" min="0.25" max="2" step="0.05"></div>
+      <div class="ctl"><label for="sF">Frekuensi f <output id="oF"></output></label><input type="range" id="sF" min="1" max="10" step="0.5"></div>
+      <div class="ctl"><label for="sT">Sudut steering θ <output id="oT"></output></label><input type="range" id="sT" min="-60" max="60" step="1"></div>
+      <div class="ctl"><label for="sZ">Kedalaman fokus F <output id="oZ"></output></label><input type="range" id="sZ" min="0" max="80" step="1"></div>
+      <div class="chk"><input type="checkbox" id="apo"><label for="apo">Apodisasi (bobot Hann pada amplitudo elemen)</label></div>
+      <div class="read" aria-live="polite">
+        <div><span>Panjang gelombang λ</span><b id="rL"></b></div>
+        <div><span>Apertur D ≈ N·d</span><b id="rD"></b></div>
+        <div><span>Tunda antarelemen Δτ</span><b id="rDt"></b></div>
+        <div><span>Tunda total maks</span><b id="rTm"></b></div>
+        <div><span>Lebar berkas −3 dB (far-field)</span><b id="rB"></b></div>
+        <div><span>Medan dekat D²/4λ</span><b id="rN"></b></div>
+      </div>
+      <p id="glMsg" class="note" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="chartbox"><h3>Pola berkas (faktor array, far-field)</h3><canvas id="pat" height="250" aria-label="Pola berkas terhadap sudut"></canvas>
+      <p class="cap">Sumbu x: sudut (°); sumbu y: dB. Lobus utama di θ; titik putus-putus menandai lobus kisi (grating lobe) bila ada.</p></div>
+    <div class="chartbox"><h3>Profil tunda per elemen</h3><canvas id="del" height="250" aria-label="Tunda waktu tiap elemen"></canvas>
+      <p class="cap">Lurus = nol; steering = garis lurus miring; fokus = parabola; keduanya dijumlahkan.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="rum">
+  <h2 id="rum">Rumus yang bekerja di balik layar</h2>
+  <div class="eq">τ<sub>n</sub> = n · d · sin θ / c<small>Steering: tunda elemen ke-n (n = 0, 1, 2, …) agar berkas menuju sudut θ.</small></div>
+  <div class="eq">τ<sub>n</sub> = [ R<sub>maks</sub> − R<sub>n</sub> ] / c<small>Fokus: R<sub>n</sub> = jarak elemen ke-n ke titik fokus; elemen terjauh ditembak lebih dulu.</small></div>
+  <div class="eq">d ≤ λ / (1 + |sin θ<sub>maks</sub>|)   (praktisnya d = λ/2)<small>Syarat bebas grating lobe saat membelokkan berkas hingga θ<sub>maks</sub>.</small></div>
+  <div class="eq">Lebar berkas ≈ 0,886 λ / (N·d·cos θ)  ;  resolusi lateral ≈ λ F / D<small>Apertur lebar memberi berkas sempit; steering menebalkan berkas karena apertur efektif mengecil.</small></div>
+  <table>
+    <tr><th>Contoh deck (3,5 MHz, N = 64, d = 0,22 mm)</th><th>Hasil</th></tr>
+    <tr><td>λ = c/f = 1540 / 3,5×10⁶</td><td>0,44 mm, jadi d = λ/2</td></tr>
+    <tr><td>Δτ = d sin 30° / c</td><td>71 ns</td></tr>
+    <tr><td>Tunda maksimum steering = 63 × 71 ns</td><td>4,5 µs</td></tr>
+    <tr><td>Tambahan tunda fokus F = 4 cm</td><td>≈ 0,39 µs</td></tr>
+  </table>
+  <p class="note" style="margin-top:8px">Setel N = 64, f = 3,5 MHz, d = 0,5 λ, θ = 30° pada simulator untuk memeriksa angka-angka ini.</p>
+</section>
+
+<section aria-labelledby="mengapa">
+  <h2 id="mengapa">Mengapa phased array, dan bagaimana saat menerima?</h2>
+  <p><b>Ukuran probe kecil.</b> Berkas disapu secara elektronik dari satu titik, sehingga satu probe kecil dapat menyapu sektor lebar. Inilah yang diperlukan untuk jantung, yang hanya terlihat melalui celah sempit antar-tulang rusuk (Webster menyebut phased array cukup kecil untuk probe transrektal dan transvaginal).</p>
+  <p><b>Tanpa bagian bergerak.</b> Pemindai sektor mekanik memutar transduser dalam cairan; array menggantinya dengan elektronika yang andal dan dapat mengubah sudut dan fokus dari satu denyut ke denyut berikutnya.</p>
+  <p><b>Penerimaan = delay-and-sum.</b> Gema yang tiba di tiap elemen ditunda lalu dijumlahkan dengan prinsip yang sama. Fokus <em>dinamis</em> mengubah tunda mengikuti kedalaman gema yang sedang datang, sehingga seluruh kedalaman terfokus saat menerima.</p>
+  <p><b>Apodisasi.</b> Memberi bobot lebih kecil pada elemen tepi menurunkan sidelobe (artefak) tetapi melebarkan lobus utama. Coba kotak apodisasi dan bandingkan pola berkas.</p>
+</section>
+
+<section aria-labelledby="cek">
+  <h2 id="cek">Cek pemahaman</h2>
+  <details><summary>1. Probe 5 MHz memakai pitch 0,6 mm. Apakah aman dari grating lobe saat membelokkan 30°?</summary>
+    <p>λ = 1540/5×10⁶ = 0,308 mm. Syarat: d ≤ λ/(1 + sin 30°) = 0,308/1,5 = 0,205 mm. Pitch 0,6 mm (≈ 1,95 λ) jauh melampaui syarat, sehingga grating lobe muncul. Coba d = 1,9 λ pada simulator.</p></details>
+  <details><summary>2. Mengapa elemen tepi ditembak lebih dulu saat memfokuskan?</summary>
+    <p>Jarak elemen tepi ke titik fokus lebih jauh daripada jarak elemen tengah. Agar semua gelombang tiba serentak, elemen yang jaraknya lebih jauh harus berangkat lebih awal.</p></details>
+  <details><summary>3. Tunda antarelemen 71 ns. Berapa clock minimum agar kuantisasi tunda ≈ T/16 pada 3,5 MHz?</summary>
+    <p>T = 1/3,5 MHz = 286 ns; T/16 ≈ 18 ns, setara clock ≈ 56 MHz. Selisih 71 ns hanya ≈ 4 langkah kuantisasi.</p></details>
+</section>
+
+<footer>
+  Simulasi edukatif: model 2D gelombang kontinu dari sumber titik, c = 1540 m/s, tanpa atenuasi dan tanpa faktor arah elemen. Hubungan tunda–sudut–fokus mengikuti fisika standar; konsep dasar bersumber dari Webster (ed.), <em>Medical Instrumentation: Application and Design</em>, 4th ed., Bab 12.12 dan Gambar 12.32.
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var C_SOUND=1540; // m/s
+var S={N:32,d:0.5,f:3.5,th:0,F:0,apo:false,mode:'wave',playing:true};
+var GW=330,GH=248,PXL=2.75;   // sel grid dan piksel per lambda
+var VIEW_W=GW/PXL, VIEW_H=GH/PXL; // dalam lambda
+var Ar=new Float32Array(GW*GH),Ai=new Float32Array(GW*GH),maxAmp=1;
+var off=document.createElement('canvas');off.width=GW;off.height=GH;
+var offc=off.getContext('2d'),img=offc.createImageData(GW,GH);
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce)S.playing=false;
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+
+function elements(){
+  var N=S.N,xs=[],w=[];
+  for(var n=0;n<N;n++){
+    xs.push((n-(N-1)/2)*S.d);
+    w.push(S.apo?0.5*(1-Math.cos(2*Math.PI*(n+0.5)/N)):1);
+  }
+  return {xs:xs,w:w};
+}
+function delays(xs){
+  var s=Math.sin(S.th*Math.PI/180),c=Math.cos(S.th*Math.PI/180),L,i;
+  if(S.F>0){
+    var fx=S.F*s,fz=S.F*c,R=[],m=0;
+    for(i=0;i<xs.length;i++){R.push(Math.sqrt((fx-xs[i])*(fx-xs[i])+fz*fz));if(R[i]>m)m=R[i];}
+    L=R.map(function(r){return m-r});
+  }else{
+    var t=xs.map(function(x){return x*s}),mn=Math.min.apply(null,t);
+    L=t.map(function(v){return v-mn});
+  }
+  return L; // panjang dalam lambda
+}
+
+function computeField(){
+  var e=elements(),xs=e.xs,w=e.w,L=delays(xs),N=xs.length,n,i,j;
+  Ar.fill(0);Ai.fill(0);
+  var dz2=new Float32Array(GH),X=new Float32Array(GW);
+  for(j=0;j<GH;j++){var z=(j+0.5)/PXL;dz2[j]=z*z;}
+  for(i=0;i<GW;i++)X[i]=(i+0.5)/PXL-VIEW_W/2;
+  var TP=2*Math.PI;
+  for(n=0;n<N;n++){
+    var xn=xs[n],ph0=TP*L[n],wn=w[n];
+    if(wn===0)continue;
+    for(j=0;j<GH;j++){
+      var row=j*GW,d2=dz2[j];
+      for(i=0;i<GW;i++){
+        var dx=X[i]-xn,r=Math.sqrt(dx*dx+d2),a=wn/Math.sqrt(r<0.5?0.5:r),ph=TP*r+ph0;
+        Ar[row+i]+=a*Math.cos(ph);Ai[row+i]+=a*Math.sin(ph);
+      }
+    }
+  }
+  var mx=1e-9,j0=Math.floor(8*PXL);
+  for(j=j0;j<GH;j++)for(i=0;i<GW;i++){var k=j*GW+i,v=Math.sqrt(Ar[k]*Ar[k]+Ai[k]*Ai[k]);if(v>mx)mx=v;}
+  maxAmp=mx;
+}
+
+// LUT warna
+var LUTW=new Uint8Array(256*3),LUTH=new Uint8Array(256*3);
+(function(){
+  var i,v,r,g,b,base=[10,16,32];
+  for(i=0;i<256;i++){
+    v=(i-127.5)/127.5;
+    if(v>=0){r=base[0]+(255-base[0])*v;g=base[1]+(196-base[1])*v;b=base[2]+(70-base[2])*v;}
+    else{v=-v;r=base[0]+(40-base[0])*v;g=base[1]+(170-base[1])*v;b=base[2]+(235-base[2])*v;}
+    LUTW[i*3]=r;LUTW[i*3+1]=g;LUTW[i*3+2]=b;
+  }
+  for(i=0;i<256;i++){
+    var u=i/255;
+    if(u<0.45){var q=u/0.45;r=8+(164-8)*q;g=10+(19-10)*q;b=20+(60-20)*q;}
+    else if(u<0.8){var q2=(u-0.45)/0.35;r=164+(244-164)*q2;g=19+(163-19)*q2;b=60+(0-60)*q2;}
+    else{var q3=(u-0.8)/0.2;r=244+(255-244)*q3;g=163+(240-163)*q3;b=0+(200-0)*q3;}
+    LUTH[i*3]=r;LUTH[i*3+1]=g;LUTH[i*3+2]=b;
+  }
+})();
+
+var fcv=$('field'),fctx=fcv.getContext('2d');
+var phase=0,last=0;
+function paintImage(){
+  var d=img.data,N=GW*GH,k;
+  if(S.mode==='wave'){
+    var cw=Math.cos(phase),sw=Math.sin(phase),sc=1/(maxAmp*0.75);
+    for(k=0;k<N;k++){
+      var v=(Ar[k]*cw+Ai[k]*sw)*sc;if(v>1)v=1;else if(v<-1)v=-1;
+      var idx=((v+1)*127.5)|0,o=k*4;
+      d[o]=LUTW[idx*3];d[o+1]=LUTW[idx*3+1];d[o+2]=LUTW[idx*3+2];d[o+3]=255;
+    }
+  }else{
+    for(k=0;k<N;k++){
+      var I=Math.sqrt(Ar[k]*Ar[k]+Ai[k]*Ai[k])/maxAmp;
+      var db=20*Math.log10(I+1e-6),u=(db+40)/40;if(u<0)u=0;else if(u>1)u=1;
+      var id2=(u*255)|0,o2=k*4;
+      d[o2]=LUTH[id2*3];d[o2+1]=LUTH[id2*3+1];d[o2+2]=LUTH[id2*3+2];d[o2+3]=255;
+    }
+  }
+  offc.putImageData(img,0,0);
+}
+function sizeCanvas(cv){
+  var dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  var w=Math.max(10,Math.round(r.width*dpr)),h=Math.max(10,Math.round(r.height*dpr));
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+  return dpr;
+}
+function drawField(){
+  var dpr=sizeCanvas(fcv),W=fcv.width,H=fcv.height;
+  paintImage();
+  fctx.imageSmoothingEnabled=true;fctx.imageSmoothingQuality='high';
+  fctx.drawImage(off,0,0,W,H);
+  var ppl=W/VIEW_W,mmL=(C_SOUND/(S.f*1e6))*1000; // mm per lambda
+  var e=elements(),i;
+  // elemen
+  fctx.fillStyle='rgba(255,255,255,0.9)';
+  var ew=Math.max(1.5*dpr,S.d*ppl*0.7);
+  for(i=0;i<e.xs.length;i++){
+    var cx=W/2+e.xs[i]*ppl;
+    fctx.fillRect(cx-ew/2,0,ew,5*dpr);
+  }
+  // arah steering
+  var s=Math.sin(S.th*Math.PI/180),c=Math.cos(S.th*Math.PI/180);
+  fctx.save();fctx.setLineDash([6*dpr,6*dpr]);fctx.strokeStyle='rgba(255,255,255,0.55)';fctx.lineWidth=1.5*dpr;
+  fctx.beginPath();fctx.moveTo(W/2,0);fctx.lineTo(W/2+s*VIEW_H*ppl*1.6,c*VIEW_H*ppl*1.6);fctx.stroke();fctx.restore();
+  // fokus
+  if(S.F>0){
+    var fx=W/2+S.F*s*ppl,fy=S.F*c*ppl;
+    fctx.strokeStyle='#F4A300';fctx.lineWidth=2*dpr;
+    fctx.beginPath();fctx.arc(fx,fy,7*dpr,0,6.2832);fctx.stroke();
+    fctx.beginPath();fctx.moveTo(fx-12*dpr,fy);fctx.lineTo(fx+12*dpr,fy);fctx.moveTo(fx,fy-12*dpr);fctx.lineTo(fx,fy+12*dpr);fctx.stroke();
+  }
+  // tik kedalaman (mm)
+  fctx.fillStyle='rgba(255,255,255,0.75)';fctx.font=(12*dpr)+'px Calibri,Carlito,sans-serif';fctx.textBaseline='middle';
+  var step=10,mm;
+  for(mm=step;mm<VIEW_H*mmL;mm+=step){
+    var y=mm/mmL*ppl;
+    fctx.fillRect(0,y,6*dpr,1*dpr);
+    fctx.fillText(mm+' mm',9*dpr,y);
+  }
+  fctx.textBaseline='alphabetic';
+  fctx.fillText('lebar tampilan ≈ '+(VIEW_W*mmL).toFixed(0)+' mm',W-170*dpr,H-8*dpr);
+}
+
+// ----- plot: pola berkas dan tunda -----
+function axisColors(){return {ink:css('--ink'),mut:css('--mut'),line:css('--line'),cr:css('--cr'),gr:css('--gr'),am:css('--am')}}
+function pattern(){
+  var e=elements(),xs=e.xs,w=e.w,N=xs.length,sth=Math.sin(S.th*Math.PI/180),out=[],sw=0,i;
+  for(i=0;i<N;i++)sw+=w[i];
+  for(var a=-90;a<=90.0001;a+=0.25){
+    var sp=Math.sin(a*Math.PI/180),re=0,im=0;
+    for(i=0;i<N;i++){var ph=2*Math.PI*xs[i]*(sp-sth);re+=w[i]*Math.cos(ph);im+=w[i]*Math.sin(ph);}
+    var m=Math.sqrt(re*re+im*im)/sw;out.push([a,20*Math.log10(m+1e-4)]);
+  }
+  return out;
+}
+function drawPattern(data){
+  var cv=$('pat'),ctx=cv.getContext('2d'),dpr=sizeCanvas(cv),W=cv.width,H=cv.height,col=axisColors();
+  ctx.clearRect(0,0,W,H);
+  var ml=46*dpr,mr=10*dpr,mt=10*dpr,mb=34*dpr,pw=W-ml-mr,ph=H-mt-mb;
+  var X=function(a){return ml+(a+90)/180*pw},Y=function(db){return mt+(-db)/50*ph};
+  ctx.font=(13*dpr)+'px Calibri,Carlito,sans-serif';ctx.fillStyle=col.mut;ctx.strokeStyle=col.line;ctx.lineWidth=1*dpr;
+  var t;
+  for(t=0;t<=50;t+=10){ctx.beginPath();ctx.moveTo(ml,Y(-t));ctx.lineTo(W-mr,Y(-t));ctx.stroke();ctx.textAlign='right';ctx.fillText(String(-t),ml-6*dpr,Y(-t)+4*dpr);}
+  for(t=-90;t<=90;t+=30){ctx.beginPath();ctx.moveTo(X(t),mt);ctx.lineTo(X(t),mt+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(t+'°',X(t),H-12*dpr);}
+  ctx.save();ctx.textAlign='center';ctx.translate(12*dpr,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('dB',0,0);ctx.restore();
+  // -3 dB
+  ctx.setLineDash([4*dpr,4*dpr]);ctx.strokeStyle=col.mut;ctx.beginPath();ctx.moveTo(ml,Y(-3));ctx.lineTo(W-mr,Y(-3));ctx.stroke();ctx.setLineDash([]);
+  // kurva
+  ctx.beginPath();
+  data.forEach(function(p,i){var y=Math.min(Math.max(p[1],-50),0);if(i===0)ctx.moveTo(X(p[0]),Y(y));else ctx.lineTo(X(p[0]),Y(y));});
+  ctx.strokeStyle=col.cr;ctx.lineWidth=2.4*dpr;ctx.stroke();
+  // garis theta
+  ctx.strokeStyle=col.gr;ctx.lineWidth=1.5*dpr;ctx.setLineDash([2*dpr,4*dpr]);ctx.beginPath();ctx.moveTo(X(S.th),mt);ctx.lineTo(X(S.th),mt+ph);ctx.stroke();ctx.setLineDash([]);
+  // grating lobes
+  var gl=gratingAngles();
+  gl.forEach(function(a){
+    ctx.fillStyle=col.am;ctx.beginPath();ctx.arc(X(a),Y(-1.5),6*dpr,0,6.2832);ctx.fill();
+  });
+}
+function gratingAngles(){
+  var out=[],sth=Math.sin(S.th*Math.PI/180),m;
+  for(m=-4;m<=4;m++){
+    if(m===0)continue;
+    var sp=sth+m/S.d;
+    if(Math.abs(sp)<=1)out.push(Math.asin(sp)*180/Math.PI);
+  }
+  return out;
+}
+function drawDelay(){
+  var cv=$('del'),ctx=cv.getContext('2d'),dpr=sizeCanvas(cv),W=cv.width,H=cv.height,col=axisColors();
+  ctx.clearRect(0,0,W,H);
+  var e=elements(),L=delays(e.xs),N=L.length,mmL=(C_SOUND/(S.f*1e6))*1000;
+  var us=L.map(function(l){return l*mmL/(C_SOUND/1000)}); // mm / (mm/us) -> us ; C=1.54 mm/us
+  var mx=Math.max.apply(null,us.concat([0.05])),top=Math.ceil(mx*1.1*10)/10;
+  var ml=52*dpr,mr=10*dpr,mt=10*dpr,mb=34*dpr,pw=W-ml-mr,ph=H-mt-mb;
+  var X=function(i){return ml+(N>1?i/(N-1):0.5)*pw},Y=function(v){return mt+ph-(v/top)*ph};
+  ctx.font=(13*dpr)+'px Calibri,Carlito,sans-serif';ctx.fillStyle=col.mut;ctx.strokeStyle=col.line;ctx.lineWidth=1*dpr;
+  var k;
+  for(k=0;k<=4;k++){var v=top*k/4;ctx.beginPath();ctx.moveTo(ml,Y(v));ctx.lineTo(W-mr,Y(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(v.toFixed(2),ml-6*dpr,Y(v)+4*dpr);}
+  ctx.textAlign='center';ctx.fillText('nomor elemen n',ml+pw/2,H-10*dpr);
+  ctx.save();ctx.translate(12*dpr,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('τₙ (µs)',0,0);ctx.restore();
+  ctx.beginPath();us.forEach(function(v,i){if(i===0)ctx.moveTo(X(i),Y(v));else ctx.lineTo(X(i),Y(v));});
+  ctx.strokeStyle=col.gr;ctx.lineWidth=2.6*dpr;ctx.stroke();
+  if(N<=40){ctx.fillStyle=col.gr;us.forEach(function(v,i){ctx.beginPath();ctx.arc(X(i),Y(v),3*dpr,0,6.2832);ctx.fill();});}
+  return Math.max.apply(null,us);
+}
+
+function fmt(v,u,dig){return v.toFixed(dig)+' '+u}
+function readouts(pdata,tmax){
+  var mmL=(C_SOUND/(S.f*1e6))*1000,N=S.N,D=N*S.d*mmL;
+  var s=Math.sin(S.th*Math.PI/180);
+  $('rL').textContent=fmt(mmL,'mm',3);
+  $('rD').textContent=fmt(D,'mm',1);
+  $('rDt').textContent=fmt(S.d*mmL*1e-3*Math.abs(s)/C_SOUND*1e9,'ns',0);
+  $('rTm').textContent=fmt(tmax,'µs',2);
+  // -3 dB lebar
+  var pk=0,i,imax=0;
+  for(i=0;i<pdata.length;i++)if(Math.abs(pdata[i][0]-S.th)<0.13){imax=i;break;}
+  var lo=imax,hi=imax;
+  while(lo>0&&pdata[lo][1]>-3)lo--;
+  while(hi<pdata.length-1&&pdata[hi][1]>-3)hi++;
+  var bw=pdata[hi][0]-pdata[lo][0];
+  $('rB').textContent=fmt(bw,'°',1);
+  $('rN').textContent=fmt(D*D/(4*mmL),'mm',0);
+  var gl=gratingAngles(),msg=$('glMsg');
+  var dmax=1/(1+Math.abs(s));
+  if(gl.length){
+    msg.className='note warn';
+    msg.textContent='Grating lobe muncul di ' + gl.map(function(a){return a.toFixed(0)+'°'}).join(', ')+': pitch d = '+S.d.toFixed(2)+' λ melampaui batas '+dmax.toFixed(2)+' λ untuk θ = '+S.th+'°. Energi bocor ke arah yang salah.';
+  }else{
+    msg.className='note ok';
+    msg.textContent='Tanpa grating lobe: d = '+S.d.toFixed(2)+' λ ≤ batas '+dmax.toFixed(2)+' λ untuk θ = '+S.th+'°.';
+  }
+}
+function updateLabels(){
+  var mmL=(C_SOUND/(S.f*1e6))*1000;
+  $('oN').textContent=S.N;
+  $('oD').textContent=S.d.toFixed(2)+' λ ('+(S.d*mmL).toFixed(2)+' mm)';
+  $('oF').textContent=S.f.toFixed(1)+' MHz';
+  $('oT').textContent=S.th+'°';
+  $('oZ').textContent=S.F>0?(S.F+' λ ≈ '+(S.F*mmL).toFixed(0)+' mm'):'tanpa fokus';
+}
+var pending=false;
+function refresh(){
+  updateLabels();
+  computeField();
+  var pdata=pattern();
+  drawPattern(pdata);
+  var tmax=drawDelay();
+  readouts(pdata,tmax);
+  drawField();
+}
+function schedule(){if(pending)return;pending=true;requestAnimationFrame(function(){pending=false;refresh();});}
+
+function sync(){
+  $('sN').value=S.N;$('sD').value=S.d;$('sF').value=S.f;$('sT').value=S.th;$('sZ').value=S.F;$('apo').checked=S.apo;
+}
+['sN','sD','sF','sT','sZ'].forEach(function(id){
+  $(id).addEventListener('input',function(){
+    S.N=+$('sN').value;S.d=+$('sD').value;S.f=+$('sF').value;S.th=+$('sT').value;S.F=+$('sZ').value;schedule();
+  });
+});
+$('apo').addEventListener('change',function(){S.apo=$('apo').checked;schedule();});
+var PRE={
+  lurus:{N:32,d:0.5,f:3.5,th:0,F:0,apo:false},
+  steer:{N:32,d:0.5,f:3.5,th:30,F:0,apo:false},
+  fokus:{N:32,d:0.5,f:3.5,th:0,F:0,apo:false},
+  gl:{N:32,d:1.2,f:3.5,th:30,F:0,apo:false}
+};
+document.querySelectorAll('[data-p]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var k=b.getAttribute('data-p'),p=Object.assign({},PRE[k]);
+    if(k==='fokus'){p.F=Math.round(25/((C_SOUND/(p.f*1e6))*1000));}
+    Object.assign(S,p);sync();schedule();
+  });
+});
+function setMode(m){
+  S.mode=m;$('mWave').setAttribute('aria-pressed',m==='wave');$('mInt').setAttribute('aria-pressed',m==='int');
+  $('play').style.display=(m==='wave')?'':'none';
+  drawField();
+}
+$('mWave').addEventListener('click',function(){setMode('wave')});
+$('mInt').addEventListener('click',function(){setMode('int')});
+$('play').addEventListener('click',function(){S.playing=!S.playing;$('play').setAttribute('aria-pressed',S.playing);$('play').textContent=S.playing?'Jeda':'Putar';});
+
+function loop(ts){
+  if(S.playing&&S.mode==='wave'){
+    var dt=last?(ts-last):0;phase=(phase+dt*0.004)%(2*Math.PI);drawField();
+  }
+  last=ts;requestAnimationFrame(loop);
+}
+window.addEventListener('resize',function(){schedule();});
+if(window.matchMedia){var mq=matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',schedule);}
+$('play').textContent=S.playing?'Jeda':'Putar';$('play').setAttribute('aria-pressed',S.playing);
+sync();refresh();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

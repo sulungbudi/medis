@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi Phased Array Ultrasonik</title>
+<style>
+:root{--bg:#F5F7FA;--card:#FFFFFF;--ink:#1B263B;--mut:#5C677D;--line:#D9DEE6;--cr:#A4133C;--gr:#00896A;--am:#B87500;--soft:#EEF1F6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1623;--card:#172033;--ink:#E8ECF3;--mut:#9AA7BD;--line:#2A3650;--cr:#FF6B8E;--gr:#2FD9A6;--am:#F4B63D;--soft:#1E2A42}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,Carlito,"Segoe UI",system-ui,sans-serif;font-size:18px;line-height:1.55}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px 48px}
+header{padding:40px 0 14px}
+.kick{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cr)}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.12;margin:6px 0 10px}
+.lead{font-size:20px;color:var(--mut);margin:0;max-width:60ch}
+.bar{width:64px;height:4px;background:var(--cr);margin:18px 0 0;border-radius:2px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+a.card{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:22px;transition:border-color .15s,transform .15s}
+a.card:hover{border-color:var(--cr);transform:translateY(-2px)}
+a.card:focus-visible{outline:3px solid var(--am);outline-offset:3px}
+.step{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;color:#fff;font-weight:700;margin-bottom:10px}
+.s1{background:#00896A}.s2{background:#A4133C}
+h2{font-size:24px;margin:0 0 6px}
+.card p{margin:0 0 12px;color:var(--mut)}
+.card ul{margin:0 0 16px 20px;padding:0;color:var(--ink);font-size:17px}
+.go{margin-top:auto;font-weight:700;color:var(--cr)}
+.tag{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--soft);color:var(--mut);border-radius:6px;padding:2px 8px;margin-bottom:10px;align-self:flex-start}
+.tip{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+.tip h3{font-size:18px;margin:0 0 6px}
+.tip p{margin:0;color:var(--mut);font-size:17px}
+footer{margin-top:26px;color:var(--mut);font-size:15px}
+@media (max-width:720px){.cards{grid-template-columns:1fr}body{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kick">Instrumentasi Medis • Ultrasonografi</div>
+  <h1>Simulasi Phased Array Ultrasonik</h1>
+  <p class="lead">Dua simulasi interaktif untuk memahami bagaimana banyak elemen kecil dapat mengarahkan dan memfokuskan berkas hanya dengan mengatur waktu tembak.</p>
+  <div class="bar"></div>
+</header>
+
+<main>
+<div class="cards">
+  <a class="card" href="PhasedArrayBasic.html">
+    <span class="step s1">1</span>
+    <span class="tag">Mulai dari sini</span>
+    <h2>Tunda Tiap Elemen</h2>
+    <p>Versi sederhana dengan 8 elemen. Atur tunda tiap elemen dan lihat gelombang lingkaran bergabung menjadi muka gelombang yang miring.</p>
+    <ul>
+      <li>Prinsip Huygens, satu elemen satu lingkaran</li>
+      <li>Rumus sin θ = c·Δτ / d</li>
+      <li>Preset: serentak, steering, fokus</li>
+    </ul>
+    <span class="go">Buka simulasi →</span>
+  </a>
+  <a class="card" href="PhasedArrayUSG.html">
+    <span class="step s2">2</span>
+    <span class="tag">Lanjutan</span>
+    <h2>Simulator Phased Array Lengkap</h2>
+    <p>Array hingga 64 elemen dengan medan gelombang, peta intensitas, pola berkas, dan profil tunda.</p>
+    <ul>
+      <li>Atur pitch, frekuensi, sudut, dan kedalaman fokus</li>
+      <li>Grating lobe dan syarat pitch ≤ λ/2</li>
+      <li>Apodisasi, lebar berkas, dan medan dekat</li>
+    </ul>
+    <span class="go">Buka simulasi →</span>
+  </a>
+</div>
+
+<div class="tip">
+  <h3>Saran urutan belajar</h3>
+  <p>Mulai dari simulasi 1 untuk memahami mengapa tunda membelokkan muka gelombang, lalu lanjut ke simulasi 2 untuk melihat pengaruh jumlah elemen, pitch, dan fokus pada berkas yang sebenarnya.</p>
+</div>
+</main>
+
+<footer>Berdasarkan Webster (ed.), <em>Medical Instrumentation: Application and Design</em>, 4th ed., Bab 12.12 (Gbr. 12.32). Semua simulasi bersifat edukatif dan berjalan sepenuhnya di peramban Anda.</footer>
+</div>
+</body>
+</html>

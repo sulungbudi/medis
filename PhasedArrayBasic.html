@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mengarahkan Berkas dengan Tunda Elemen</title>
+<style>
+:root{--bg:#F5F7FA;--card:#FFFFFF;--ink:#1B263B;--mut:#5C677D;--line:#D9DEE6;--cr:#A4133C;--gr:#00896A;--am:#B87500;--soft:#EEF1F6;--screen:#0B1220}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1623;--card:#172033;--ink:#E8ECF3;--mut:#9AA7BD;--line:#2A3650;--cr:#FF6B8E;--gr:#2FD9A6;--am:#F4B63D;--soft:#1E2A42;--screen:#070B14}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,Carlito,"Segoe UI",system-ui,sans-serif;font-size:18px;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px 48px}
+header{padding:30px 0 10px}
+.kick{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cr)}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.12;margin:6px 0 8px}
+.lead{font-size:19px;color:var(--mut);margin:0;max-width:62ch}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+h2{font-size:22px;margin:0 0 8px}
+p{margin:0 0 10px}
+.screen{background:var(--screen);border-radius:12px;overflow:hidden}
+canvas{display:block;width:100%;aspect-ratio:900/470}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--mut)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+.ctl label{display:flex;justify-content:space-between;font-size:16px;font-weight:600}
+.ctl output{color:var(--cr);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--cr)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin-top:8px}
+.el label{font-size:14px;color:var(--mut);display:flex;justify-content:space-between}
+.el output{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+.read{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.read div{background:var(--soft);border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.3}
+.read b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+.msg{margin:10px 0 0;padding:10px 14px;border-left:4px solid var(--gr);background:var(--soft);border-radius:6px}
+.msg.warn{border-color:var(--cr)}
+.eq{background:var(--soft);border-left:4px solid var(--cr);border-radius:6px;padding:8px 14px;margin:8px 0;font-size:20px}
+ol{margin:0 0 6px 20px;padding:0}li{margin-bottom:4px}
+details{border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:8px 0;background:var(--bg)}
+summary{cursor:pointer;font-weight:600}
+footer{margin-top:20px;color:var(--mut);font-size:15px}
+@media (max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}.read{grid-template-columns:1fr}body{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kick">Instrumentasi Medis • Phased Array</div>
+  <h1>Mengarahkan Berkas dengan Menunda Tiap Elemen</h1>
+  <p class="lead">Delapan elemen, satu aturan: tiap elemen memancarkan gelombang lingkarannya sendiri pada waktu τ. Gelombang-gelombang itu bergabung menjadi satu muka gelombang, dan kemiringannya ditentukan oleh tunda.</p>
+</header>
+
+<section aria-labelledby="sim">
+  <h2 id="sim">Eksperimen</h2>
+  <div class="screen"><canvas id="cv" aria-label="Gelombang lingkaran dari delapan elemen dan muka gelombang gabungan"></canvas></div>
+  <div class="row">
+    <button id="play">Jeda</button>
+    <button id="reset">Ulang dari t = 0</button>
+    <span style="flex:1"></span>
+    <button data-p="0">Serentak</button>
+    <button data-p="0.5">Berurutan →</button>
+    <button data-p="-0.5">← Berurutan</button>
+    <button data-p="1">Maks (θ = 90°)</button>
+    <button data-p="focus">Fokus (parabola)</button>
+  </div>
+  <div class="ctl"><label for="master">Tunda berurutan Δτ antarelemen <output id="oM"></output></label><input type="range" id="master" min="-1" max="1" step="0.05" value="0"></div>
+  <div class="ctl"><label for="tt">Waktu t <output id="oT"></output></label><input type="range" id="tt" min="0" max="14" step="0.05" value="0"></div>
+
+  <h2 style="margin-top:14px;font-size:18px">Atur sendiri tunda tiap elemen (satuan d/c)</h2>
+  <div class="grid" id="grid"></div>
+
+  <div class="read" aria-live="polite">
+    <div>Kemiringan tunda (rata-rata) <b id="rS"></b></div>
+    <div>Arah berkas θ <b id="rA"></b></div>
+    <div>Tunda terbesar <b id="rM"></b></div>
+  </div>
+  <p class="msg" id="msg"></p>
+  <p style="color:var(--mut);font-size:15px;margin-top:8px">Satuan waktu: d/c. Bila pitch d = 0,22 mm dan c = 1540 m/s, maka 1 satuan = 143 ns.</p>
+</section>
+
+<section aria-labelledby="baca">
+  <h2 id="baca">Cara membaca gambar</h2>
+  <ol>
+    <li>Kotak di bagian atas adalah elemen probe; ruang di bawahnya adalah jaringan.</li>
+    <li>Tiap lingkaran adalah gelombang yang dipancarkan satu elemen. Lingkaran baru muncul tepat saat t mencapai τ elemen itu, jadi elemen yang ditunda mulai belakangan.</li>
+    <li>Garis tebal kuning menghubungkan lingkaran-lingkaran itu: itulah muka gelombang gabungan. Panah menunjukkan arah rambatnya, yaitu arah berkas.</li>
+  </ol>
+  <div class="eq">sin θ = c · Δτ / d</div>
+  <p>Selisih tunda 1 satuan (d/c) antarelemen berarti sin θ = 1, yaitu 90°: itulah batas tertinggi. Selisih 0,5 satuan memberi sin θ = 0,5, yaitu 30°.</p>
+  <p>Bila tunda <em>melengkung</em> (elemen tengah ditunda paling lama), muka gelombang menyempit ke satu titik: itulah <strong>fokus</strong>.</p>
+</section>
+
+<section aria-labelledby="tan">
+  <h2 id="tan">Tantangan</h2>
+  <details><summary>1. Arahkan berkas ke kanan sebesar 30° tanpa memakai preset.</summary>
+    <p>Geser Δτ ke 0,5 (atau setel τ₀ = 0, τ₁ = 0,5, τ₂ = 1,0, … τ₇ = 3,5). sin θ = 0,5 → θ = 30°.</p></details>
+  <details><summary>2. Bagaimana mengarahkan ke kiri?</summary>
+    <p>Balik urutannya: elemen kanan ditembak lebih dulu (Δτ negatif). Muka gelombang miring ke arah sebaliknya.</p></details>
+  <details><summary>3. Apa yang terjadi bila selisih tunda lebih besar dari 1 satuan?</summary>
+    <p>sin θ akan melebihi 1, tidak ada arah yang memenuhi. Gelombang tidak lagi membentuk muka gelombang yang menjalar maju secara terarah; lingkaran-lingkarannya terlihat terpisah dan tidak bergabung.</p></details>
+  <details><summary>4. Mengapa array nyata memakai tunda hanya beberapa ratus ns?</summary>
+    <p>Karena d/c sangat kecil. Pada d = 0,22 mm dan c = 1540 m/s, satu satuan hanya 143 ns, sehingga sudut 30° memerlukan Δτ ≈ 71 ns.</p></details>
+</section>
+
+<footer>Simulasi edukatif: gelombang lingkaran 2D dengan kecepatan konstan c (prinsip Huygens). Konsep mengikuti Webster, <em>Medical Instrumentation</em>, Bab 12.12 (Gbr. 12.32d); rumus sin θ = cΔτ/d adalah fisika standar.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+var N=8,U=60,W=900,H=470,X0=W/2,Y0=56,FOC=5,TMAX=14,CD=0.22/1540*1e9; // ns per satuan
+var tau=[0,0,0,0,0,0,0,0],focusOn=false,playing=true,t=0,last=0;
+var cv=$('cv'),ctx=cv.getContext('2d');
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;if(reduce)playing=false;
+
+var grid=$('grid'),sl=[],ou=[];
+for(var n=0;n<N;n++){(function(n){
+  var d=document.createElement('div');d.className='el';
+  d.innerHTML='<label for="e'+n+'">Elemen '+n+' <output id="o'+n+'"></output></label><input type="range" id="e'+n+'" min="0" max="7" step="0.05" value="0">';
+  grid.appendChild(d);
+})(n);}
+for(n=0;n<N;n++){sl.push($('e'+n));ou.push($('o'+n));}
+
+function colorFor(n,a){
+  var f=n/(N-1),r=Math.round(244+(0-244)*f),g=Math.round(163+(196-163)*f),b=Math.round(0+(160-0)*f);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+function xn(n){return X0+(n-(N-1)/2)*U;}
+
+function setMaster(v){
+  for(var n=0;n<N;n++)tau[n]=v>=0?n*v:(N-1-n)*(-v);
+  focusOn=false;
+}
+function setFocus(){
+  var F=FOC,R=[],m=0,n;
+  for(n=0;n<N;n++){var dx=n-(N-1)/2;R.push(Math.sqrt(dx*dx+F*F));if(R[n]>m)m=R[n];}
+  for(n=0;n<N;n++)tau[n]=m-R[n];
+  focusOn=true;
+}
+function fit(){
+  var mean=0,n;for(n=0;n<N;n++)mean+=tau[n];mean/=N;
+  var sxy=0,sxx=0;
+  for(n=0;n<N;n++){var x=n-(N-1)/2;sxy+=x*(tau[n]-mean);sxx+=x*x;}
+  var s=sxy/sxx,res=0;
+  for(n=0;n<N;n++){var x2=n-(N-1)/2;res=Math.max(res,Math.abs(tau[n]-mean-s*x2));}
+  return {s:s,res:res,mean:mean};
+}
+function syncUI(){
+  var f=fit(),n;
+  for(n=0;n<N;n++){sl[n].value=tau[n];ou[n].textContent=tau[n].toFixed(2);}
+  var mx=Math.max.apply(null,tau);
+  $('rS').textContent=f.s.toFixed(2)+' d/c per elemen';
+  var lin=f.res<0.03&&!focusOn,msg=$('msg');
+  if(lin&&Math.abs(f.s)>1.0001){$('rA').textContent='tidak ada';msg.className='msg warn';msg.textContent='|Δτ| > 1 satuan: sin θ akan melebihi 1, tidak ada arah berkas. Lingkaran-lingkaran tidak bergabung menjadi muka gelombang.';}
+  else if(lin){
+    var th=Math.asin(Math.max(-1,Math.min(1,f.s)))*180/Math.PI;
+    $('rA').textContent=(th>0?'+':'')+th.toFixed(1)+'°';msg.className='msg';
+    msg.textContent=Math.abs(f.s)<0.005?'Semua elemen serentak: muka gelombang rata, berkas lurus ke bawah (0°).':'Tunda naik secara linear: muka gelombang miring dan berkas menuju '+(th>0?'kanan':'kiri')+' sebesar '+Math.abs(th).toFixed(1)+'°. sin θ = '+f.s.toFixed(2)+'.';
+  }else if(focusOn){$('rA').textContent='ke titik fokus';msg.className='msg';msg.textContent='Tunda berbentuk parabola: elemen tepi ditembak lebih dulu, sehingga gelombang bertemu di satu titik (fokus), bukan berkas lurus.';}
+  else{$('rA').textContent='tidak teratur';msg.className='msg warn';msg.textContent='Tunda tidak linear dan tidak parabola: muka gelombang gabungan melengkung tidak beraturan, jadi tidak ada arah berkas yang jelas.';}
+  $('rM').textContent=mx.toFixed(2)+' d/c ('+(mx*CD).toFixed(0)+' ns)';
+  $('oT').textContent=t.toFixed(2)+' d/c';
+  $('oM').textContent=(lin?f.s:0).toFixed(2);
+  if(lin&&Math.abs(f.s)<=1)$('master').value=f.s;
+}
+
+function draw(){
+  var sc=cv.width/W;ctx.setTransform(sc,0,0,sc,0,0);
+  ctx.clearRect(0,0,W,H);
+  // area jaringan
+  ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fillRect(0,Y0,W,H-Y0);
+  // lingkaran
+  var n,active=[];
+  ctx.save();ctx.beginPath();ctx.rect(0,Y0,W,H-Y0);ctx.clip();
+  for(n=0;n<N;n++){
+    var r=(t-tau[n])*U;
+    if(r>0){
+      ctx.beginPath();ctx.arc(xn(n),Y0,r,0,Math.PI,false);
+      ctx.strokeStyle=colorFor(n,0.9);ctx.lineWidth=2;ctx.stroke();
+      active.push({n:n,r:r});
+    }
+  }
+  // muka gelombang gabungan
+  var f=fit();
+  if(f.res<0.03&&!focusOn&&Math.abs(f.s)<=1&&active.length>=2){
+    var th=Math.asin(f.s),sx=Math.sin(th),cz=Math.cos(th);
+    ctx.beginPath();
+    active.forEach(function(a,i){var px=xn(a.n)+a.r*sx,py=Y0+a.r*cz;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});
+    ctx.strokeStyle='#FFD166';ctx.lineWidth=5;ctx.lineCap='round';ctx.stroke();
+  }else if(focusOn&&active.length===N){
+    ctx.beginPath();active.forEach(function(a,i){
+      // titik terdepan tiap lingkaran menuju fokus
+      var fx=X0,fy=Y0+FOC*U,dx=fx-xn(a.n),dy=fy-Y0,L=Math.sqrt(dx*dx+dy*dy);
+      var px=xn(a.n)+a.r*dx/L,py=Y0+a.r*dy/L;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});
+    ctx.strokeStyle='#FFD166';ctx.lineWidth=5;ctx.lineCap='round';ctx.stroke();
+  }
+  ctx.restore();
+  // arah
+  if(f.res<0.03&&!focusOn&&Math.abs(f.s)<=1){
+    var a2=Math.asin(f.s),L2=330;
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,0.75)';ctx.fillStyle='rgba(255,255,255,0.75)';ctx.lineWidth=3;
+    ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(X0,Y0);ctx.lineTo(X0+L2*Math.sin(a2),Y0+L2*Math.cos(a2));ctx.stroke();ctx.setLineDash([]);
+    var ex=X0+L2*Math.sin(a2),ey=Y0+L2*Math.cos(a2),ang=Math.atan2(ey-Y0,ex-X0);
+    ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(ex-16*Math.cos(ang-0.4),ey-16*Math.sin(ang-0.4));ctx.lineTo(ex-16*Math.cos(ang+0.4),ey-16*Math.sin(ang+0.4));ctx.closePath();ctx.fill();
+    ctx.font='20px Calibri,Carlito,sans-serif';ctx.fillText('θ = '+(a2*180/Math.PI).toFixed(0)+'°',ex+8,ey+4);
+    ctx.restore();
+  }
+  if(focusOn){
+    ctx.strokeStyle='#FFD166';ctx.lineWidth=3;ctx.beginPath();ctx.arc(X0,Y0+FOC*U,10,0,6.2832);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(X0-18,Y0+FOC*U);ctx.lineTo(X0+18,Y0+FOC*U);ctx.moveTo(X0,Y0+FOC*U-18);ctx.lineTo(X0,Y0+FOC*U+18);ctx.stroke();
+  }
+  // elemen
+  for(n=0;n<N;n++){
+    var firing=t>=tau[n];
+    ctx.fillStyle=firing?colorFor(n,1):'rgba(255,255,255,0.35)';
+    ctx.fillRect(xn(n)-17,Y0-28,34,24);
+    ctx.fillStyle='#0B1220';ctx.font='bold 14px Calibri,Carlito,sans-serif';ctx.textAlign='center';
+    ctx.fillText(n,xn(n),Y0-11);
+    // jam tunda
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='13px Calibri,Carlito,sans-serif';
+    ctx.fillText('τ = '+tau[n].toFixed(1),xn(n),Y0-34);
+  }
+  ctx.textAlign='left';
+}
+function resize(){
+  var dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  var w=Math.max(300,Math.round(r.width*dpr)),h=Math.round(w*H/W);
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+  draw();
+}
+function loop(ts){
+  if(playing){var dt=last?ts-last:0;t+=dt*0.0025;if(t>TMAX)t=0;$('tt').value=t;$('oT').textContent=t.toFixed(2)+' d/c';draw();}
+  last=ts;requestAnimationFrame(loop);
+}
+// kontrol
+$('master').addEventListener('input',function(){setMaster(+$('master').value);syncUI();draw();});
+$('tt').addEventListener('input',function(){t=+$('tt').value;playing=false;$('play').textContent='Putar';$('oT').textContent=t.toFixed(2)+' d/c';draw();});
+sl.forEach(function(s,n){s.addEventListener('input',function(){tau[n]=+s.value;focusOn=false;syncUI();draw();});});
+document.querySelectorAll('[data-p]').forEach(function(b){b.addEventListener('click',function(){
+  var v=b.getAttribute('data-p');
+  if(v==='focus')setFocus();else setMaster(+v);
+  t=0;playing=true;$('play').textContent='Jeda';syncUI();draw();
+});});
+$('play').addEventListener('click',function(){playing=!playing;$('play').textContent=playing?'Jeda':'Putar';});
+$('reset').addEventListener('click',function(){t=0;$('tt').value=0;draw();syncUI();});
+window.addEventListener('resize',resize);
+setMaster(0.5);t=5;$('play').textContent=playing?'Jeda':'Putar';syncUI();resize();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
